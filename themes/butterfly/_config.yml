@@ -60,10 +60,10 @@ avatar:
   effect: false
 
 # Disable all banner images
-disable_top_img: true
+disable_top_img: false
 
 # If the banner of page not setting, it will show the default_top_img
-default_top_img:
+default_top_img: /img/asuka-neno-genesis-5k-1l.jpg
 
 # The banner image of index page
 index_img: /img/asuka-neno-genesis-5k-1l.jpg
