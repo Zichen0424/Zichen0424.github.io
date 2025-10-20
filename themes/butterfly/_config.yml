@@ -18,10 +18,18 @@ nav:
   fixed: false
 
 menu:
-  # Home: / || fas fa-home
-  # List||fas fa-list:
-  #   Music: /music/ || fas fa-music
-  #   Movie: /movies/ || fas fa-video
+  Home: / || fas fa-home
+  Game: /games/ || fas fa-gamepad
+  Music: /music/ || fas fa-music
+  Anime: /anime/ || fas fa-tv
+  Bilibili: https://space.bilibili.com/33196213 || fab fa-bilibili
+  Discord: /discord/ || fab fa-discord
+  Archives: /archives/ || fas fa-archive
+  Categories: /categories/ || fas fa-folder
+  Tags: /tags/ || fas fa-tag
+  About: /about/ || fas fa-user
+  
+
 
 # --------------------------------------
 # Code Blocks Settings
@@ -795,7 +803,7 @@ text_align_justify: false
 
 # Add a mask to the header and footer
 mask:
-  header: true
+  header: false
   footer: true
 
 # Loading Animation
