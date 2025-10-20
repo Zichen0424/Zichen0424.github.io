@@ -11,7 +11,7 @@
 
 nav:
   # Navigation bar logo image
-  logo:
+  logo: /img/asuka-neon-genesis-5k-1l.jpg
   display_title: true
   display_post_title: true
   # Whether to fix navigation bar
@@ -53,7 +53,7 @@ social:
 # Image Settings
 # --------------------------------------
 
-favicon: /img/favicon.png
+favicon: /img/LittleLain.png
 
 avatar:
   img: /img/LainAtDusk.png
