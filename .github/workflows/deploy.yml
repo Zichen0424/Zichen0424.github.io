@@ -49,6 +49,7 @@ jobs:
           TOKEN: ${{ secrets.TOKEN }}
         run: |
           cd public/
+          echo "www.lain04.me" > CNAME
           git init
           git add -A
           git commit -m "Create by workflows"
