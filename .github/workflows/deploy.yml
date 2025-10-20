@@ -21,7 +21,9 @@ jobs:
           node-version: '24'
 
       - name: Install Dependencies
-        run: npm install
+        run: |
+          npm install
+          npm install hexo-renderer-pug hexo-renderer-stylus --save
 
       - name: Install Hexo Git Deployer
         run: |
@@ -42,6 +44,7 @@ jobs:
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
 
       - name: Deploy to GitHub Pages
+        if: success()
         env:
           TOKEN: ${{ secrets.TOKEN }}
         run: |
