@@ -154,6 +154,12 @@ subtitle:
   # Customize typed.js
   # https://github.com/mattboldt/typed.js/#customization
   typed_option:
+    typed_option:
+    typeSpeed: 70
+    backSpeed: 40
+    backDelay: 1000
+    loop: true
+    showCursor: true
   # Source - Call the third-party service API (Chinese only)
   # It will show the source first, then show the content of sub
   # Choose: false/1/2/3
@@ -291,7 +297,7 @@ aside:
       enable: true
       icon: fab fa-github
       text: Follow Me
-      link: https://github.com/xxxxxx
+      link: https://github.com/Zichen0424
   card_announcement:
     enable: true
     content: This is my Blog
