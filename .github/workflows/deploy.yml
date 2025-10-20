@@ -32,6 +32,9 @@ jobs:
         run: |
           hexo clean
           hexo generate
+          
+      - name: Disable Jekyll
+        run: echo "" > public/.nojekyll
 
       - name: Configure Git
         run: |
