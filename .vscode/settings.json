@@ -1,0 +1,23 @@
+"terminal.integrated.profiles.windows": {
+  "PowerShell": {
+    "source": "Windows PowerShell",
+    "icon": "terminal-powershell"
+  },
+  "pwsh": {
+    "path": "C:\\Program Files\\PowerShell\\7\\pwsh.exe",
+    "icon": "terminal-powershell"
+  },
+  "Command Prompt": {
+    "path": "C:\\Windows\\System32\\cmd.exe",
+    "icon": "terminal-cmd"
+  },
+  "Git Bash": {
+    "source": "Git Bash",
+    "icon": "terminal-bash"
+  },
+  "WSL": {
+    "source": "Windows Subsystem for Linux",
+    "icon": "terminal-linux"
+  }
+},
+"terminal.integrated.defaultProfile.windows": "PowerShell"
