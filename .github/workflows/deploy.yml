@@ -3,55 +3,48 @@ name: Deploy Hexo to GitHub Pages
 on:
   push:
     branches:
-      - main  # 当推送到 main 分支时触发
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
-        with:
-          submodules: false  # 禁用子模块检查
+        uses: actions/checkout@v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v7
         with:
           node-version: '24'
+          cache: npm
 
-      - name: Install Dependencies
-        run: |
-          npm install
-          npm install hexo-renderer-pug hexo-renderer-stylus --save
+      - name: Install dependencies
+        run: npm ci
 
-      - name: Install Hexo Git Deployer
-        run: |
-          npm install hexo-deployer-git --save
-          npm install hexo-cli -g
+      - name: Build site
+        run: npm run clean && npm run build
 
-      - name: Clean and Generate Static Files
+      - name: Prepare GitHub Pages files
         run: |
-          hexo clean
-          hexo generate
-          
-      - name: Disable Jekyll
-        run: echo "" > public/.nojekyll
-
-      - name: Configure Git
-        run: |
-          git config --global user.name 'github-actions[bot]'
-          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          touch public/.nojekyll
+          printf 'www.lain04.me\n' > public/CNAME
 
       - name: Deploy to GitHub Pages
-        if: success()
         env:
-          TOKEN: ${{ secrets.TOKEN }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          cd public/
-          echo "www.lain04.me" > CNAME
-          git init
-          git add -A
-          git commit -m "Create by workflows"
-          git remote add origin https://${{ secrets.TOKEN }}@github.com/Zichen0424/Zichen0424.github.io.git
-          git push origin HEAD:gh-pages -f
+          git -C public init
+          git -C public config user.name 'github-actions[bot]'
+          git -C public config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git -C public add --all
+          git -C public commit -m "Deploy ${GITHUB_SHA}"
+          git -C public push --force "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:gh-pages
