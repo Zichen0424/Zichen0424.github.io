@@ -1,0 +1,290 @@
+<!DOCTYPE html><html lang="en" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>BLUE HOUR：用 React 做一个 Persona 3 风格的塔罗网站 | La1n's Blog</title><meta name="author" content="La1n"><meta name="copyright" content="La1n"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="从 SVG 牌面、抽牌状态机到可取消的圆形波纹转场，复盘 BLUE HOUR 的纯前端实现。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="BLUE HOUR：用 React 做一个 Persona 3 风格的塔罗网站">
+<meta property="og:url" content="https://zichen0424.github.io/2026/09/19/persona-tarot-blue-hour/index.html">
+<meta property="og:site_name" content="La1n&#39;s Blog">
+<meta property="og:description" content="从 SVG 牌面、抽牌状态机到可取消的圆形波纹转场，复盘 BLUE HOUR 的纯前端实现。">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://zichen0424.github.io/img/LainAtDusk.png">
+<meta property="article:published_time" content="2026-09-19T08:00:00.000Z">
+<meta property="article:modified_time" content="2026-09-19T08:00:00.000Z">
+<meta property="article:author" content="La1n">
+<meta property="article:tag" content="Persona 3">
+<meta property="article:tag" content="React">
+<meta property="article:tag" content="TypeScript">
+<meta property="article:tag" content="Vite">
+<meta property="article:tag" content="前端开发">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://zichen0424.github.io/img/LainAtDusk.png"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "BLUE HOUR：用 React 做一个 Persona 3 风格的塔罗网站",
+  "url": "https://zichen0424.github.io/2026/09/19/persona-tarot-blue-hour/",
+  "image": "https://zichen0424.github.io/img/LainAtDusk.png",
+  "datePublished": "2026-09-19T08:00:00.000Z",
+  "dateModified": "2026-09-19T08:00:00.000Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "La1n",
+      "url": "https://zichen0424.github.io"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/LittleLain.png"><link rel="canonical" href="https://zichen0424.github.io/2026/09/19/persona-tarot-blue-hour/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css?v=5.5.1"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.1.0/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: undefined,
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: 'Copy Successful',
+    error: 'Copy Failed',
+    noSupport: 'Browser Not Supported'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: 'Just now',
+    min: 'minutes ago',
+    hour: 'hours ago',
+    day: 'days ago',
+    month: 'months ago'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid@4.12.0/dist/infinitegrid.min.js',
+    buttonText: 'Load More'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'BLUE HOUR：用 React 做一个 Persona 3 风格的塔罗网站',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><meta name="generator" content="Hexo 8.0.0"></head><body><div id="web_bg" style="background-image: url(/img/01.jpg);"></div><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/LainAtDusk.png" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">2</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">5</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">1</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> Home</span></a></div><div class="menus_item"><a class="site-page" href="/games/"><i class="fa-fw fas fa-gamepad"></i><span> Game</span></a></div><div class="menus_item"><a class="site-page" href="/music/"><i class="fa-fw fas fa-music"></i><span> Music</span></a></div><div class="menus_item"><a class="site-page" href="/anime/"><i class="fa-fw fas fa-tv"></i><span> Anime</span></a></div><div class="menus_item"><a class="site-page" target="_blank" rel="noopener" href="https://space.bilibili.com/33196213"><i class="fa-fw fab fa-bilibili"></i><span> Bilibili</span></a></div><div class="menus_item"><a class="site-page" href="/discord/"><i class="fa-fw fab fa-discord"></i><span> Discord</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> Archives</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder"></i><span> Categories</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tag"></i><span> Tags</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-user"></i><span> About</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(https://zichen0424.github.io/img/asuka-neon-genesis-5k-1l.jpg);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><img class="site-icon" src="/img/GengarHello.gif" alt="Logo"><span class="site-name">La1n's Blog</span></a><a class="nav-page-title" href="/"><span class="site-name">BLUE HOUR：用 React 做一个 Persona 3 风格的塔罗网站</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  Back to Home</span></span></a></span><div id="menus"><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> Home</span></a></div><div class="menus_item"><a class="site-page" href="/games/"><i class="fa-fw fas fa-gamepad"></i><span> Game</span></a></div><div class="menus_item"><a class="site-page" href="/music/"><i class="fa-fw fas fa-music"></i><span> Music</span></a></div><div class="menus_item"><a class="site-page" href="/anime/"><i class="fa-fw fas fa-tv"></i><span> Anime</span></a></div><div class="menus_item"><a class="site-page" target="_blank" rel="noopener" href="https://space.bilibili.com/33196213"><i class="fa-fw fab fa-bilibili"></i><span> Bilibili</span></a></div><div class="menus_item"><a class="site-page" href="/discord/"><i class="fa-fw fab fa-discord"></i><span> Discord</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> Archives</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder"></i><span> Categories</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tag"></i><span> Tags</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-user"></i><span> About</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">BLUE HOUR：用 React 做一个 Persona 3 风格的塔罗网站</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">Created</span><time class="post-meta-date-created" datetime="2026-09-19T08:00:00.000Z" title="Created 2026-09-19 16:00:00">2026-09-19</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">Updated</span><time class="post-meta-date-updated" datetime="2026-09-19T08:00:00.000Z" title="Updated 2026-09-19 16:00:00">2026-09-19</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E8%B7%B5/">项目实践</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">Post Views:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><p>我做了一个以《女神异闻录 3》蓝白视觉为灵感的塔罗网站，叫作 <strong>BLUE HOUR · 蓝色时刻</strong>。</p>
+<p>它包含 22 张大阿尔卡纳、六种牌阵、逐张选牌与揭晓、塔罗图鉴，以及保存在浏览器里的历史记录。整个项目使用 React、TypeScript 和 Vite，不需要后端、账户或 API 密钥。</p>
+<p>这篇文章想聊聊，游戏界面的氛围如何落到网页实现上，以及抽牌、动画和本地存储背后的几个具体设计。</p>
+<p><a target="_blank" rel="noopener" href="https://github.com/Zichen0424/PersonaTarot">项目源码：PersonaTarot</a></p>
+<span id="more"></span>
+
+<h2 id="从视觉风格到交互节奏"><a href="#从视觉风格到交互节奏" class="headerlink" title="从视觉风格到交互节奏"></a>从视觉风格到交互节奏</h2><p>蓝白配色、大字号窄体英文、斜向菜单和几何构图，构成了网站的主要视觉语言。但只有颜色和背景，还不足以撑起完整体验。</p>
+<p>进入页面后，用户会先看到牌阵示意，再经过洗牌、选牌、翻面，最后阅读结果。页面不同阶段的信息量和动效也随之变化：选牌时突出可操作的牌背，揭晓时把注意力集中到已选卡牌，完成后才展开解释。</p>
+<p>项目使用 React 19、TypeScript 5.9 和 Vite 7。牌面由 SVG 绘制，动画主要通过 CSS 实现，没有引入额外的动画库或全局状态管理库。英文字体 Barlow Condensed 随项目打包，中文使用系统字体。</p>
+<p>这里也需要区分两类参考：P3 提供了视觉灵感；六种牌阵的菜单与牌位则参考了提供的演示素材，并对照《明日方舟》“今日答案！”活动资料整理，并非 P3 原作中的塔罗玩法。</p>
+<h2 id="六种牌阵，共用一套数据和流程"><a href="#六种牌阵，共用一套数据和流程" class="headerlink" title="六种牌阵，共用一套数据和流程"></a>六种牌阵，共用一套数据和流程</h2><p>当前开放的六种牌阵分别是：</p>
+<table>
+<thead>
+<tr>
+<th>牌阵</th>
+<th>中文名</th>
+<th>牌位</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>THE FLOW</td>
+<td>时间之流</td>
+<td>过去、现在、未来</td>
+</tr>
+<tr>
+<td>THE GUN</td>
+<td>铳与手</td>
+<td>行动、方式、目标、反应</td>
+</tr>
+<tr>
+<td>THE CREPE</td>
+<td>饼与馅</td>
+<td>表象、内情、感触、余存</td>
+</tr>
+<tr>
+<td>THE GATE</td>
+<td>此与彼</td>
+<td>彼在、此在、通行、开启</td>
+</tr>
+<tr>
+<td>THE HALO</td>
+<td>本真之环</td>
+<td>输出、输入、处理、内核、记忆</td>
+</tr>
+<tr>
+<td>DAILY READING &#x2F; THE COIN</td>
+<td>正与反</td>
+<td>所得、所失</td>
+</tr>
+</tbody></table>
+<p>这些模式定义在 <code>src/data/tarot.ts</code> 中。每个模式包含名称、牌位、提示语和总结，抽牌数量直接来自 <code>positions.length</code>。</p>
+<p>这样，三张牌和五张牌不需要分别维护两套逻辑。选满多少张才能进入揭晓阶段、结果页显示多少个位置，都读取同一个配置。</p>
+<p>牌库也采用统一结构：每张牌包含编号、中英文名称、罗马数字，以及正逆位的关键词、基础牌义、行动建议和模式解读。</p>
+<p>结果页按“牌 → 正逆位 → 模式”读取文本，再结合对应牌位的提问展示。当前部分模式的解读由模式引导语与基础牌义组合，并不是每一种组合都独立撰写了一整套长文。</p>
+<p>用户输入的问题只用于记录和回看，不会发往服务器，也不参与答案生成。这是一个以预写牌义辅助自我思考的应用。</p>
+<h2 id="用状态机约束抽牌过程"><a href="#用状态机约束抽牌过程" class="headerlink" title="用状态机约束抽牌过程"></a>用状态机约束抽牌过程</h2><p>抽牌流程涉及多个阶段。如果分别用“正在洗牌”“可以选牌”“已经结束”等布尔值描述，很容易产生互相矛盾的组合。</p>
+<p>项目在 <code>src/lib/reading.ts</code> 中使用明确的阶段类型：</p>
+<figure class="highlight ts"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> <span class="title class_">Phase</span> =</span><br><span class="line">  | <span class="string">&#x27;setup&#x27;</span></span><br><span class="line">  | <span class="string">&#x27;shuffling&#x27;</span></span><br><span class="line">  | <span class="string">&#x27;selecting&#x27;</span></span><br><span class="line">  | <span class="string">&#x27;revealing&#x27;</span></span><br><span class="line">  | <span class="string">&#x27;complete&#x27;</span>;</span><br></pre></td></tr></table></figure>
+
+<p>React 的 <code>useReducer</code> 负责处理状态转换：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">准备 → 洗牌 → 选牌 → 揭晓 → 完成</span><br></pre></td></tr></table></figure>
+
+<p>每一种操作都有前置条件。例如，只有 <code>selecting</code> 阶段才能选牌；索引必须有效，且不能已经被选中。选中的牌数达到当前牌阵要求后，才能进入 <code>revealing</code>。</p>
+<p>翻牌和完成操作同样受到限制。只有全部揭晓后，应用才创建记录并保存；重复点击和不符合阶段的操作会被忽略。</p>
+<p>这种做法让界面和业务规则分开：按钮是否禁用属于界面反馈，状态转换是否合法则由 reducer 再检查一次。即使发生快速点击，流程仍然有明确的约束。</p>
+<h2 id="随机性：先洗整副牌，再让用户选择"><a href="#随机性：先洗整副牌，再让用户选择" class="headerlink" title="随机性：先洗整副牌，再让用户选择"></a>随机性：先洗整副牌，再让用户选择</h2><p>项目通过 Web Crypto 获取随机数：</p>
+<figure class="highlight ts"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">export</span> <span class="keyword">function</span> <span class="title function_">secureRandom</span>(<span class="params"></span>) &#123;</span><br><span class="line">  <span class="keyword">return</span> globalThis.<span class="property">crypto</span>.<span class="title function_">getRandomValues</span>(<span class="keyword">new</span> <span class="title class_">Uint32Array</span>(<span class="number">1</span>))[<span class="number">0</span>]</span><br><span class="line">    / <span class="number">0x100000000</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>分母是 <code>2^32</code>，因此结果落在 <code>[0, 1)</code> 内。随后使用 Fisher–Yates 算法打乱完整牌库：</p>
+<figure class="highlight ts"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> (<span class="keyword">let</span> i = deck.<span class="property">length</span> - <span class="number">1</span>; i &gt; <span class="number">0</span>; i--) &#123;</span><br><span class="line">  <span class="keyword">const</span> j = <span class="title class_">Math</span>.<span class="title function_">floor</span>(<span class="title function_">random</span>() * (i + <span class="number">1</span>));</span><br><span class="line">  [deck[i], deck[j]] = [deck[j], deck[i]];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>每张牌的正逆位也在生成牌组时确定，以 <code>0.5</code> 为阈值。</p>
+<p>因此，用户面对的 22 张牌背，对应的是已经生成好的完整牌组。点击只是选取位置，不会在每次点击时临时抽一张新牌；无重复牌也由“完整牌库打乱后再选择”自然保证。</p>
+<p><code>shuffleDeck</code> 还允许传入自定义随机函数。测试时可以固定返回值，验证正逆位阈值和边界索引，不必依赖碰运气触发特定情况。</p>
+<h2 id="SVG-牌面：统一卡框，独立图案"><a href="#SVG-牌面：统一卡框，独立图案" class="headerlink" title="SVG 牌面：统一卡框，独立图案"></a>SVG 牌面：统一卡框，独立图案</h2><p>牌面拆成两个主要组件：</p>
+<ul>
+<li><code>CardArt.tsx</code>：绘制卡框、渐变、牌背、编号与名称。</li>
+<li><code>ArcanaSymbol.tsx</code>：按牌编号绘制不同的几何图案。</li>
+</ul>
+<p>所有卡牌共用 <code>viewBox=&quot;0 0 240 400&quot;</code>，所以抽牌区、结果页和图鉴可以复用同一个组件，只改变显示尺寸。</p>
+<p>这里有一个容易忽略的细节：SVG 的渐变和图案通过 ID 引用。当同一页面出现多张牌时，如果每个实例都使用相同 ID，就可能引用到别的卡牌资源。</p>
+<p>项目使用 React 的 <code>useId()</code> 生成实例标识，再用于 <code>&lt;linearGradient&gt;</code>、<code>&lt;pattern&gt;</code> 和对应引用，避免这种冲突。</p>
+<p>几何牌面由项目自行绘制；背景中的 P3 角色素材与牌面不是同一种来源，素材归属在仓库的 <code>CREDITS.md</code> 中单独说明。</p>
+<h2 id="圆形波纹：动画也要处理取消和竞争"><a href="#圆形波纹：动画也要处理取消和竞争" class="headerlink" title="圆形波纹：动画也要处理取消和竞争"></a>圆形波纹：动画也要处理取消和竞争</h2><p>页面背景分成两组：五个 THE 牌阵共用一组，DAILY READING 使用另一组。</p>
+<p>THE 系列内部切换时保持背景静止，只播放约 540 毫秒的牌面翻转，并给不同卡牌加入少量延迟。只有在 THE 和 DAILY 之间切换时，才播放约 2.2 秒的圆形扩散。</p>
+<p><code>SceneBackground.tsx</code> 同时维护当前背景 <code>base</code> 和即将进入的背景 <code>incoming</code>。新背景放在上层，通过 CSS 的 <code>clip-path: circle(...)</code> 从接近中央的位置逐步展开，三层淡色圆环补充波纹边缘。</p>
+<p>扩散半径也不是写死的。组件使用 <code>ResizeObserver</code> 测量容器，根据宽高计算足以覆盖最远角落的半径，避免在较高的手机页面上留下未覆盖区域。</p>
+<p>动画的另一半工作是处理用户打断：</p>
+<ul>
+<li>背景先预加载，再开始展开。</li>
+<li>切换目标变化时，清理旧计时器。</li>
+<li>异步加载完成后，检查该次操作是否已取消。</li>
+<li>快速反向切换时，直接收敛到最后选择的场景。</li>
+<li>关闭动效或启用系统减少动态效果时，直接更新背景。</li>
+</ul>
+<p>这些处理保证了动画结束后的画面与当前选择一致，不会被较早的回调改回旧场景。</p>
+<h2 id="每日结果和历史记录为什么分开保存"><a href="#每日结果和历史记录为什么分开保存" class="headerlink" title="每日结果和历史记录为什么分开保存"></a>每日结果和历史记录为什么分开保存</h2><p>本地存储以 <code>blue-hour:v1</code> 为键，主要保存两部分：</p>
+<figure class="highlight ts"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">interface</span> <span class="title class_">SavedData</span> &#123;</span><br><span class="line">  <span class="attr">version</span>: <span class="number">1</span>;</span><br><span class="line">  <span class="attr">history</span>: <span class="title class_">ReadingRecord</span>[];</span><br><span class="line">  <span class="attr">daily</span>: <span class="title class_">ReadingRecord</span> | <span class="literal">null</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>history</code> 保留最近 30 条完成记录；<code>daily</code> 单独保存每日结果。</p>
+<p>分开保存的原因很直接：清空历史不应该让当天的每日结果重新抽取。普通记录不断增加、旧记录被挤出列表，也不应该影响当天指引。</p>
+<p>“今天”使用设备本地年月日计算，而不是截取 UTC 时间字符串。页面还会定时检查日期，并在窗口重新获得焦点或可见性变化时更新日期状态。</p>
+<p>这里的固定结果依赖浏览器存储，不是由日期作为种子重新计算出来的。同一浏览器保留存储时，可以恢复当天结果；清除站点数据、换浏览器或存储不可用时，就不能保证延续。</p>
+<p>加载记录时，程序也不会只做一次 <code>JSON.parse</code> 就直接信任数据。它会检查模式、牌数、牌编号、正逆位、文本长度和重复卡牌，再过滤无效记录。</p>
+<p>旧版模式仍保留对应定义，尤其是旧版“每日一牌”。如果当天已经保存一张牌的旧结果，就继续显示原结果，不会强行补成新版两张牌。</p>
+<h2 id="手机布局与键盘操作"><a href="#手机布局与键盘操作" class="headerlink" title="手机布局与键盘操作"></a>手机布局与键盘操作</h2><p>桌面上的斜向大字菜单，在手机上改为横向菜单；结果牌阵也随屏幕宽度调整。</p>
+<p>固定底栏则采用实际测量高度的方式：React 用 <code>ResizeObserver</code> 把底栏高度写入 CSS 变量 <code>--app-footer-height</code>，内容区按这个数值预留底部空间。这样，手机上文字换行导致底栏变高时，也不会压住最后一段内容。</p>
+<p>交互还包括方向键选牌、阶段切换后的焦点移动，以及用原生 <code>&lt;dialog&gt;</code> 展示历史记录。</p>
+<p>这些细节让视觉表现较强的页面仍然可以通过键盘完成主要操作。</p>
+<h2 id="测试和静态部署"><a href="#测试和静态部署" class="headerlink" title="测试和静态部署"></a>测试和静态部署</h2><p>项目的 Vitest 测试主要覆盖抽牌与存储规则，包括完整牌库、六种牌阵的牌数、不重复选牌、正逆位阈值、非法状态操作、每日日期边界，以及损坏存储和旧记录兼容。</p>
+<p>构建执行 <code>tsc -b &amp;&amp; vite build</code>，先做 TypeScript 检查，再生成静态文件。</p>
+<p>部署工作流把测试构建与发布分开：先运行 <code>npm ci</code>、测试和构建，再上传 <code>dist</code>，最后通过 GitHub Pages 官方部署 Action 发布。测试或构建失败，发布任务就不会继续。</p>
+<p>路由使用哈希形式，例如 <code>#/atlas/9</code>；Vite 设置 <code>base: &#39;./&#39;</code>，使构建资源使用相对路径。这两处配置让网站可以部署到仓库子目录，无需额外配置前端路由重写。</p>
+<h2 id="下一步可以继续打磨什么"><a href="#下一步可以继续打磨什么" class="headerlink" title="下一步可以继续打磨什么"></a>下一步可以继续打磨什么</h2><p>当前版本已经把视觉界面、抽牌流程和本地记录连接起来。继续迭代时，我会优先考虑两个方向。</p>
+<p>一是丰富不同牌阵的解读，让它们不只是在基础牌义前增加不同的引导语，而是更贴合对应问题结构。</p>
+<p>二是增加浏览器端的自动化交互测试。现有测试更集中在数据和状态逻辑；快速切换场景、跨午夜恢复每日结果、手机底栏布局等行为，仍值得单独验证。</p>
+<p>这个项目里让我最感兴趣的，是如何让强烈的视觉风格与清晰的交互规则配合起来：牌面负责表达，状态机约束过程，动画承接变化，本地记录让一次体验可以被回看。</p>
+<p>源码与素材说明：</p>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://github.com/Zichen0424/PersonaTarot">PersonaTarot 项目仓库</a></li>
+<li><a target="_blank" rel="noopener" href="https://github.com/Zichen0424/PersonaTarot/blob/7e47499df607922b310fa4f2fc2e01c4d2e59487/src/lib/reading.ts">抽牌状态与随机算法</a></li>
+<li><a target="_blank" rel="noopener" href="https://github.com/Zichen0424/PersonaTarot/blob/7e47499df607922b310fa4f2fc2e01c4d2e59487/src/components/SceneBackground.tsx">圆形背景转场</a></li>
+<li><a target="_blank" rel="noopener" href="https://github.com/Zichen0424/PersonaTarot/blob/7e47499df607922b310fa4f2fc2e01c4d2e59487/public/assets/CREDITS.md">素材来源与归属</a></li>
+</ul>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>Author: </span><span class="post-copyright-info"><a href="https://zichen0424.github.io">La1n</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>Link: </span><span class="post-copyright-info"><a href="https://zichen0424.github.io/2026/09/19/persona-tarot-blue-hour/">https://zichen0424.github.io/2026/09/19/persona-tarot-blue-hour/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>Copyright Notice: </span><span class="post-copyright-info">All articles on this blog are licensed under <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> unless otherwise stated.</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/React/">React</a><a class="post-meta__tags" href="/tags/TypeScript/">TypeScript</a><a class="post-meta__tags" href="/tags/Vite/">Vite</a><a class="post-meta__tags" href="/tags/Persona-3/">Persona 3</a><a class="post-meta__tags" href="/tags/%E5%89%8D%E7%AB%AF%E5%BC%80%E5%8F%91/">前端开发</a></div><div class="post-share"><div class="social-share" data-image="/img/LainAtDusk.png" data-sites="facebook,x,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related full-width" href="/2026/09/19/hello-world/" title="Hello World"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-right"><div class="info-1"><div class="info-item-1">Next</div><div class="info-item-2">Hello World</div></div><div class="info-2"><div class="info-item-1">Welcome to Hexo! This is your very first post. Check documentation for more info. If you get any problems when using Hexo, you can find the answer in troubleshooting or you can ask me on GitHub. Quick StartCreate a new post1$ hexo new &quot;My New Post&quot;  More info: Writing Run server1$ hexo server  More info: Server Generate static files1$ hexo generate  More info: Generating Deploy to remote sites1$ hexo deploy  More info: Deployment </div></div></div></a></nav></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/LainAtDusk.png" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">La1n</div><div class="author-info-description"></div><div class="site-data"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">2</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">5</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">1</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/Zichen0424"><i class="fab fa-github"></i><span>Follow Me</span></a></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>Announcement</span></div><div class="announcement_content">This is my Blog</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>Contents</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BB%8E%E8%A7%86%E8%A7%89%E9%A3%8E%E6%A0%BC%E5%88%B0%E4%BA%A4%E4%BA%92%E8%8A%82%E5%A5%8F"><span class="toc-number">1.</span> <span class="toc-text">从视觉风格到交互节奏</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%AD%E7%A7%8D%E7%89%8C%E9%98%B5%EF%BC%8C%E5%85%B1%E7%94%A8%E4%B8%80%E5%A5%97%E6%95%B0%E6%8D%AE%E5%92%8C%E6%B5%81%E7%A8%8B"><span class="toc-number">2.</span> <span class="toc-text">六种牌阵，共用一套数据和流程</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%94%A8%E7%8A%B6%E6%80%81%E6%9C%BA%E7%BA%A6%E6%9D%9F%E6%8A%BD%E7%89%8C%E8%BF%87%E7%A8%8B"><span class="toc-number">3.</span> <span class="toc-text">用状态机约束抽牌过程</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%9A%8F%E6%9C%BA%E6%80%A7%EF%BC%9A%E5%85%88%E6%B4%97%E6%95%B4%E5%89%AF%E7%89%8C%EF%BC%8C%E5%86%8D%E8%AE%A9%E7%94%A8%E6%88%B7%E9%80%89%E6%8B%A9"><span class="toc-number">4.</span> <span class="toc-text">随机性：先洗整副牌，再让用户选择</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#SVG-%E7%89%8C%E9%9D%A2%EF%BC%9A%E7%BB%9F%E4%B8%80%E5%8D%A1%E6%A1%86%EF%BC%8C%E7%8B%AC%E7%AB%8B%E5%9B%BE%E6%A1%88"><span class="toc-number">5.</span> <span class="toc-text">SVG 牌面：统一卡框，独立图案</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9C%86%E5%BD%A2%E6%B3%A2%E7%BA%B9%EF%BC%9A%E5%8A%A8%E7%94%BB%E4%B9%9F%E8%A6%81%E5%A4%84%E7%90%86%E5%8F%96%E6%B6%88%E5%92%8C%E7%AB%9E%E4%BA%89"><span class="toc-number">6.</span> <span class="toc-text">圆形波纹：动画也要处理取消和竞争</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%AF%8F%E6%97%A5%E7%BB%93%E6%9E%9C%E5%92%8C%E5%8E%86%E5%8F%B2%E8%AE%B0%E5%BD%95%E4%B8%BA%E4%BB%80%E4%B9%88%E5%88%86%E5%BC%80%E4%BF%9D%E5%AD%98"><span class="toc-number">7.</span> <span class="toc-text">每日结果和历史记录为什么分开保存</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%89%8B%E6%9C%BA%E5%B8%83%E5%B1%80%E4%B8%8E%E9%94%AE%E7%9B%98%E6%93%8D%E4%BD%9C"><span class="toc-number">8.</span> <span class="toc-text">手机布局与键盘操作</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%B5%8B%E8%AF%95%E5%92%8C%E9%9D%99%E6%80%81%E9%83%A8%E7%BD%B2"><span class="toc-number">9.</span> <span class="toc-text">测试和静态部署</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%8B%E4%B8%80%E6%AD%A5%E5%8F%AF%E4%BB%A5%E7%BB%A7%E7%BB%AD%E6%89%93%E7%A3%A8%E4%BB%80%E4%B9%88"><span class="toc-number">10.</span> <span class="toc-text">下一步可以继续打磨什么</span></a></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>Recent Posts</span></div><div class="aside-list"><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/09/19/persona-tarot-blue-hour/" title="BLUE HOUR：用 React 做一个 Persona 3 风格的塔罗网站">BLUE HOUR：用 React 做一个 Persona 3 风格的塔罗网站</a><time datetime="2026-09-19T08:00:00.000Z" title="Created 2026-09-19 16:00:00">2026-09-19</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/09/19/hello-world/" title="Hello World">Hello World</a><time datetime="2026-09-19T07:44:51.421Z" title="Created 2026-09-19 15:44:51">2026-09-19</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2025 - 2026 By La1n</span><span class="framework-info"><span>Framework </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo 8.0.0</a><span class="footer-separator">|</span><span>Theme </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly 5.5.1</a></span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="Reading Mode"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="Toggle Between Light and Dark Mode"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="Toggle Between Single-column and Double-column"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="Settings"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="Table of Contents"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="Back to Top"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js?v=5.5.1"></script><script src="/js/main.js?v=5.5.1"></script><div class="js-pjax"></div><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div></body></html>
